@@ -6,3 +6,5 @@ Daniel Jimenez Morales
 Jose David Gutiérrez Díaz
 Sergio Andres Garita Garro
 ---------------------
+Requerimientos implementados:
+-Modulo 1.0
