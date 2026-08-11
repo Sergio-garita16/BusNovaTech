@@ -1,0 +1,5 @@
+{
+  "atendidos": [
+    {"nombre": "jose", "id": "424242", "edad": 14, "monedaCuenta": "Dólares", "horaCompra": "02:55:47", "horaAbordaje": "02:55:54", "servicio": "REGULAR", "libras": 0.0, "montoCobradoUSD": 20.0, "tipoBus": "P", "idBus": 1, "terminal": "Heredia"}
+  ]
+}

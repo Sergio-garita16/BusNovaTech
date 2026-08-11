@@ -1,0 +1,13 @@
+{
+  "colas": [
+    {"idBus": 1, "tipoBus": "P", "cantidad": 0, "tiquetes": [
+
+    ]},
+    {"idBus": 2, "tipoBus": "D", "cantidad": 0, "tiquetes": [
+
+    ]},
+    {"idBus": 3, "tipoBus": "N", "cantidad": 0, "tiquetes": [
+
+    ]}
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "localidades": [
+    {"nombre": "Heredia"},
+    {"nombre": "Mercedes"}
+  ],
+  "rutas": [
+    {"origen": "Heredia", "destino": "Mercedes", "peso": 4.0},
+    {"origen": "Mercedes", "destino": "Heredia", "peso": 4.0}
+  ]
+}
