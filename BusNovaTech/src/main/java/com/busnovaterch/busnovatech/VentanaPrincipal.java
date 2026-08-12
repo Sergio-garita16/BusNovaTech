@@ -17,14 +17,14 @@ public class VentanaPrincipal extends JFrame {
     private Config config;
     private Grafo grafo;
 
-    // Paleta de Colores de la Empresa de Transportes
-    private final Color COLOR_PRIMARIO = new Color(26, 54, 93);      // Azul Marino Corporativo
+    // Paleta de Colores Corporativa
+    private final Color COLOR_PRIMARIO = new Color(26, 54, 93);      // Azul Marino
     private final Color COLOR_BOTON = new Color(43, 108, 176);        // Azul Acero
-    private final Color COLOR_ACCION = new Color(39, 103, 73);        // Verde Éxito/Registro
-    private final Color COLOR_FONDO = new Color(247, 250, 252);       // Gris Claro/Blanco
+    private final Color COLOR_ACCION = new Color(39, 103, 73);        // Verde Éxito
+    private final Color COLOR_FONDO = new Color(247, 250, 252);       // Fondo Claro
     private final Color COLOR_TEXTO = Color.WHITE;
 
-    // Fuentes para Pantalla Completa
+    // Tipografías Escaladas para Pantalla Completa
     private final Font FONT_TITULO = new Font("SansSerif", Font.BOLD, 18);
     private final Font FONT_ETIQUETA = new Font("SansSerif", Font.BOLD, 16);
     private final Font FONT_CAMPO = new Font("SansSerif", Font.PLAIN, 16);
@@ -45,7 +45,7 @@ public class VentanaPrincipal extends JFrame {
 
         setTitle("BusNovaTech - Sistema de Gestión de Transportes | Terminal: " + config.getNombreTerminal());
         
-        // Configurar la ventana para abrir en Pantalla Completa Maximizada
+        // Iniciar maximizado en pantalla completa
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         setMinimumSize(new Dimension(1024, 720));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -71,7 +71,7 @@ public class VentanaPrincipal extends JFrame {
         txtAreaSalida.setMargin(new Insets(10, 10, 10, 10));
 
         JScrollPane scrollSalida = new JScrollPane(txtAreaSalida);
-        scrollSalida.setPreferredSize(new Dimension(800, 220));
+        scrollSalida.setPreferredSize(new Dimension(800, 230));
         scrollSalida.setBorder(BorderFactory.createTitledBorder(
             BorderFactory.createLineBorder(COLOR_PRIMARIO, 2), 
             "Consola de Salida / Historial", 
@@ -141,7 +141,7 @@ public class VentanaPrincipal extends JFrame {
         });
 
         btnVerBuses.addActionListener(e -> {
-            StringBuilder sb = new StringBuilder("Buses Registrados en la Terminal:\n\n");
+            StringBuilder sb = new StringBuilder("BUSES REGISTRADOS EN LA TERMINAL:\n\n");
             NodoBus actual = config.getBuses().getFrente();
             if (actual == null) {
                 sb.append("No hay buses registrados en la terminal.");
@@ -209,7 +209,7 @@ public class VentanaPrincipal extends JFrame {
                 txtAreaSalida.setText(res);
                 limpiarCamposTiquete();
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error al registrar: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Error al registrar tiquete: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -235,44 +235,78 @@ public class VentanaPrincipal extends JFrame {
             try {
                 NodoBus busFrente = config.getBuses().getFrente();
                 if (busFrente == null) {
-                    JOptionPane.showMessageDialog(this, "Primero debe crear al menos un bus en la pestaña 'Gestión de Buses'.");
+                    JOptionPane.showMessageDialog(this, "Primero debe crear al menos un bus en la pestaña 'Gestión de Buses'.", "Sin Buses", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
 
                 DefaultComboBoxModel<String> modelBuses = new DefaultComboBoxModel<>();
                 NodoBus actual = busFrente;
+                boolean hayGenteEnColas = false;
+
                 while (actual != null) {
-                    modelBuses.addElement("Bus #" + actual.getIdBus() + " (" + GestionTiquetes.describirTipo(actual.getTipoBus()) + ")");
+                    int tamanoFila = actual.getFilaClientes().getTamaño();
+                    modelBuses.addElement("Bus #" + actual.getIdBus() + " (" + GestionTiquetes.describirTipo(actual.getTipoBus()) + ") - Pasajeros en fila: " + tamanoFila);
+                    if (tamanoFila > 0) hayGenteEnColas = true;
                     actual = actual.getSiguiente();
+                }
+
+                if (!hayGenteEnColas) {
+                    JOptionPane.showMessageDialog(this, "No hay personas esperando en la fila de ningún bus.", "Colas Vacías", JOptionPane.INFORMATION_MESSAGE);
+                    return;
                 }
 
                 JComboBox<String> cbBusesDisponibles = new JComboBox<>(modelBuses);
                 cbBusesDisponibles.setFont(FONT_CAMPO);
-                int opcion = JOptionPane.showConfirmDialog(this, cbBusesDisponibles, "Seleccione el Bus a abordar", JOptionPane.OK_CANCEL_OPTION);
+
+                int opcion = JOptionPane.showConfirmDialog(this, cbBusesDisponibles, "Seleccione el Bus para Abordar", JOptionPane.OK_CANCEL_OPTION);
 
                 if (opcion == JOptionPane.OK_OPTION) {
                     String seleccion = (String) cbBusesDisponibles.getSelectedItem();
-                    int idBus = Integer.parseInt(seleccion.split(" ")[0].replace("Bus", "").replace("#", "").trim());
+                    if (seleccion == null) return;
 
-                    NodoBus bus = config.getBuses().buscarPorId(idBus);
-                    if (bus != null) {
-                        String serv = JOptionPane.showInputDialog(this, "Servicio (Regular, VIP, Ejecutivo, Carga):");
-                        if (serv == null || serv.trim().isEmpty()) serv = "Regular";
-
-                        double libras = 0;
-                        if ("Carga".equalsIgnoreCase(serv.trim())) {
-                            String lbsStr = JOptionPane.showInputDialog(this, "Libras de carga:");
-                            if (lbsStr != null && !lbsStr.trim().isEmpty()) {
-                                libras = Double.parseDouble(lbsStr.trim());
-                            }
-                        }
-
-                        String res = GestionTiquetes.confirmarAbordaje(bus, config.getBuses(), config.getNombreTerminal(), serv, libras, true);
-                        txtAreaSalida.setText(res);
+                    // Extracción ultra segura del ID del Bus
+                    String soloPrimerosDigitos = seleccion.split("-")[0].replaceAll("[^0-9]", "").trim();
+                    if (soloPrimerosDigitos.isEmpty()) {
+                        JOptionPane.showMessageDialog(this, "No se pudo identificar el ID del bus seleccionado.", "Error", JOptionPane.ERROR_MESSAGE);
+                        return;
                     }
+
+                    int idBus = Integer.parseInt(soloPrimerosDigitos);
+                    NodoBus bus = config.getBuses().buscarPorId(idBus);
+
+                    if (bus == null || bus.getFilaClientes().getTamaño() == 0) {
+                        JOptionPane.showMessageDialog(this, "El bus seleccionado no tiene clientes en fila.", "Cola Vacía", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+
+                    String[] opcionesServicio = {"Regular", "VIP", "Ejecutivo", "Carga"};
+                    String serv = (String) JOptionPane.showInputDialog(
+                        this, "Seleccione el servicio a cobrar:", "Servicio del Cliente",
+                        JOptionPane.QUESTION_MESSAGE, null, opcionesServicio, opcionesServicio[0]
+                    );
+
+                    if (serv == null) return; // Presionó cancelar
+
+                    double libras = 0;
+                    if ("Carga".equalsIgnoreCase(serv)) {
+                        String lbsStr = JOptionPane.showInputDialog(this, "Ingrese el peso en libras (lbs):");
+                        if (lbsStr == null || lbsStr.trim().isEmpty()) {
+                            JOptionPane.showMessageDialog(this, "Debe ingresar un peso en libras para el servicio de carga.", "Campo Vacío", JOptionPane.WARNING_MESSAGE);
+                            return;
+                        }
+                        try {
+                            libras = Double.parseDouble(lbsStr.trim());
+                        } catch (NumberFormatException ex) {
+                            JOptionPane.showMessageDialog(this, "El valor ingresado para libras debe ser numérico.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                    }
+
+                    String res = GestionTiquetes.confirmarAbordaje(bus, config.getBuses(), config.getNombreTerminal(), serv, libras, true);
+                    txtAreaSalida.setText(res);
                 }
             } catch (Exception ex) {
-                txtAreaSalida.setText("Error al abordar: " + ex.getMessage());
+                JOptionPane.showMessageDialog(this, "Error al procesar el abordaje: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -315,27 +349,40 @@ public class VentanaPrincipal extends JFrame {
         panel.add(btnVerGrafo, gbc);
 
         btnAgregarLocalidad.addActionListener(e -> {
-            String loc = txtLocalidad.getText();
-            if (loc != null && !loc.trim().isEmpty()) {
-                grafo.agregarLocalidadInterno(loc.trim());
+            String loc = txtLocalidad.getText().trim();
+            if (!loc.isEmpty()) {
+                grafo.agregarLocalidadInterno(loc);
                 txtAreaSalida.setText("Localidad '" + loc + "' agregada con éxito.");
                 txtLocalidad.setText("");
+            } else {
+                JOptionPane.showMessageDialog(this, "Escriba el nombre de la localidad.", "Campo Vacío", JOptionPane.WARNING_MESSAGE);
             }
         });
 
         btnAgregarRutaAccion.addActionListener(e -> {
-            try {
-                String orig = txtOrigen.getText();
-                String dest = txtDestino.getText();
-                double peso = Double.parseDouble(txtPeso.getText());
+            String orig = txtOrigen.getText().trim();
+            String dest = txtDestino.getText().trim();
+            String pesoStr = txtPeso.getText().trim();
 
-                if (orig != null && dest != null && !orig.isEmpty() && !dest.isEmpty()) {
-                    grafo.agregarRutaInterno(orig.trim(), dest.trim(), peso);
-                    txtAreaSalida.setText("Ruta conectada: " + orig + " -> " + dest + " (" + peso + " km)");
-                    txtOrigen.setText(""); txtDestino.setText(""); txtPeso.setText("");
+            if (orig.isEmpty() || dest.isEmpty() || pesoStr.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Debe completar los tres campos: Origen, Destino y Distancia (Peso).", "Campos Incompletos", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            try {
+                double peso = Double.parseDouble(pesoStr);
+                if (peso <= 0) {
+                    JOptionPane.showMessageDialog(this, "La distancia debe ser mayor a 0.", "Valor Inválido", JOptionPane.WARNING_MESSAGE);
+                    return;
                 }
+
+                grafo.agregarRutaInterno(orig, dest, peso);
+                txtAreaSalida.setText("Ruta conectada: " + orig + " -> " + dest + " (" + peso + " km)");
+                txtOrigen.setText(""); txtDestino.setText(""); txtPeso.setText("");
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "El peso/distancia debe ser un número válido.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Verifique los datos de origen, destino y peso.");
+                JOptionPane.showMessageDialog(this, "Error al agregar la ruta: " + ex.getMessage(), "Error en Grafo", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -356,14 +403,13 @@ public class VentanaPrincipal extends JFrame {
                 double tc = Bancocentral.obtenerTipoCambioVentaDolar();
                 txtAreaSalida.setText("Tipo de cambio del Dólar (BCCR): ₡" + tc);
             } catch (Exception ex) {
-                txtAreaSalida.setText("Error al consultar BCCR: " + ex.getMessage());
+                txtAreaSalida.setText("Error al consultar el servicio web del BCCR: " + ex.getMessage());
             }
         });
 
         return panel;
     }
 
-    // Auxiliares para diseño consistente de UI
     private JLabel crearEtiqueta(String texto) {
         JLabel lbl = new JLabel(texto);
         lbl.setFont(FONT_ETIQUETA);
@@ -378,7 +424,7 @@ public class VentanaPrincipal extends JFrame {
         btn.setForeground(COLOR_TEXTO);
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(260, 50)); // Botones grandes escalados
+        btn.setPreferredSize(new Dimension(280, 50));
         btn.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
         return btn;
     }

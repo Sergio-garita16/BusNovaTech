@@ -3,7 +3,8 @@
   "buses": [
     {"id": 1, "tipo": "P"},
     {"id": 2, "tipo": "D"},
-    {"id": 3, "tipo": "N"}
+    {"id": 3, "tipo": "N"},
+    {"id": 4, "tipo": "P"}
   ],
   "usuarios": [
     {"nombre": "Jose", "usuario": "jose", "clave": "taco"}
